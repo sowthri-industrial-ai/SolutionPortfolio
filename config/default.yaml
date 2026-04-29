@@ -1,10 +1,10 @@
 # Top-level pipeline configuration.
 # References sibling YAML files in this directory.
 
-asset_hierarchy_path: config/asset_hierarchy.yaml
-tags_path: config/tags.yaml
-lab_panel_path: config/lab_panel.yaml
-scenarios_path: config/scenarios.yaml
+asset_hierarchy_path: asset_hierarchy.yaml
+tags_path: tags.yaml
+lab_panel_path: lab_panel.yaml
+scenarios_path: scenarios.yaml
 
 # Pipeline-wide settings
 seed: 42
