@@ -89,7 +89,7 @@ def test_gap_rate_in_expected_range() -> None:
     layer = _build_layer((tag,), seed=7)
     out = layer.apply(_flat_clean(400000, 20000), target_freq="1min")
     nan_fraction = out["TEST.PV"].isna().mean()
-    # Expected: 1e-4 per sample × ~17.5 min mean gap ≈ 0.00175 NaN fraction.
+    # Expected: 1e-4 per sample x ~17.5 min mean gap ~ 0.00175 NaN fraction.
     assert 0.0005 < nan_fraction < 0.005
 
 
