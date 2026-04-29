@@ -1,0 +1,14 @@
+# Fault scenarios. v1 supports exchanger_fouling only.
+
+fault_scenarios:
+  - id: FOUL_001
+    type: exchanger_fouling
+    target: SITE01.CDU1.E-101
+    start: "2025-04-15T00:00:00"
+    duration_days: 60
+    profile: linear
+    severity_final: 0.4   # 40 percent UA reduction at end of fault window
+    description: >
+      Slow linear fouling of the crude preheat exchanger E-101 over 60 days.
+      Visible signature: cold outlet temperature drops, furnace duty rises,
+      fuel gas consumption increases.

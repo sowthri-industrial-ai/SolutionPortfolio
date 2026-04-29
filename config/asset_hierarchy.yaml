@@ -1,0 +1,48 @@
+# Asset hierarchy. Every record in every output references a functional location.
+# Format: SITE.UNIT.EQUIPMENT (dot-separated).
+
+sites:
+  SITE01:
+    name: Refinery Alpha
+    timezone: Asia/Riyadh
+    units:
+      CDU1:
+        name: Crude Distillation Unit 1
+        equipment:
+          - tag: E-101
+            type: shell_tube_exchanger
+            service: crude_preheat
+            criticality: A
+            functional_location: SITE01.CDU1.E-101
+          - tag: F-101
+            type: fired_heater
+            service: crude_furnace
+            criticality: A
+            functional_location: SITE01.CDU1.F-101
+          - tag: T-101
+            type: distillation_column
+            service: atmospheric_tower
+            criticality: A
+            functional_location: SITE01.CDU1.T-101
+          - tag: P-101
+            type: centrifugal_pump
+            service: crude_charge
+            criticality: B
+            functional_location: SITE01.CDU1.P-101
+        streams:
+          - id: crude_feed
+            functional_location: SITE01.CDU1.STREAM.crude_feed
+          - id: e101_cold_outlet
+            functional_location: SITE01.CDU1.STREAM.e101_cold_outlet
+          - id: furnace_outlet
+            functional_location: SITE01.CDU1.STREAM.furnace_outlet
+          - id: naphtha_product
+            functional_location: SITE01.CDU1.STREAM.naphtha_product
+          - id: kero_product
+            functional_location: SITE01.CDU1.STREAM.kero_product
+          - id: diesel_product
+            functional_location: SITE01.CDU1.STREAM.diesel_product
+          - id: ago_product
+            functional_location: SITE01.CDU1.STREAM.ago_product
+          - id: residue_product
+            functional_location: SITE01.CDU1.STREAM.residue_product

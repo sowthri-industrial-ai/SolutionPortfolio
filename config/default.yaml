@@ -1,0 +1,27 @@
+# Top-level pipeline configuration.
+# References sibling YAML files in this directory.
+
+asset_hierarchy_path: config/asset_hierarchy.yaml
+tags_path: config/tags.yaml
+lab_panel_path: config/lab_panel.yaml
+scenarios_path: config/scenarios.yaml
+
+# Pipeline-wide settings
+seed: 42
+simulation_freq: "5min"      # cadence at which mock physics is evaluated
+pi_output_freq: "1min"       # final PI tag resolution
+lims_report_delay_hours: 4   # gap between sample_time and report_time
+
+# Base operating conditions
+base_operation:
+  feed_rate_kg_h:
+    distribution: normal
+    mean: 400000
+    std: 8000
+  feed_temp_c:
+    distribution: normal
+    mean: 25
+    std: 5
+    diurnal_amplitude_c: 3
+    diurnal_peak_hour: 14
+  furnace_target_c: 360

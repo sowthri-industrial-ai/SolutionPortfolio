@@ -1,0 +1,37 @@
+# Lab tests run on each refinery stream.
+# `frequency_hours` is the sampling cadence.
+# `uncertainty_std` is the lab measurement reproducibility, in the test's units.
+# `physics_output` maps to the column produced by rsd.physics for the true value.
+
+tests:
+  - method: ASTM_D86
+    property: T95
+    stream: SITE01.CDU1.STREAM.diesel_product
+    physics_output: diesel_T95_c
+    units: degC
+    uncertainty_std: 1.5
+    frequency_hours: 8
+
+  - method: ASTM_D4294
+    property: sulfur_total
+    stream: SITE01.CDU1.STREAM.diesel_product
+    physics_output: diesel_sulfur_pct
+    units: wt_pct
+    uncertainty_std: 0.005
+    frequency_hours: 8
+
+  - method: ASTM_D86
+    property: T95
+    stream: SITE01.CDU1.STREAM.kero_product
+    physics_output: kero_T95_c
+    units: degC
+    uncertainty_std: 1.5
+    frequency_hours: 8
+
+  - method: ASTM_D4052
+    property: density_15c
+    stream: SITE01.CDU1.STREAM.naphtha_product
+    physics_output: naphtha_density
+    units: kg_m3
+    uncertainty_std: 0.5
+    frequency_hours: 24

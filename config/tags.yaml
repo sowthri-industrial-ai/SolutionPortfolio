@@ -1,0 +1,211 @@
+# PI tag definitions.
+# `physics_output` maps to the column name produced by rsd.physics.
+# `functional_location` is the asset this tag is attached to.
+# `noise_pct` is percent of span (one-sigma).
+# `lag_seconds` is the time constant of the first-order sensor lag.
+# `drift_per_day` is the random-walk drift magnitude per day (in engineering units).
+# `compression_deadband_pct` is the swinging-door deadband as percent of span.
+
+tags:
+  # Feed conditions
+  - name: FI_101.PV
+    description: Crude charge mass flow
+    physics_output: feed_rate_kg_h
+    functional_location: SITE01.CDU1.STREAM.crude_feed
+    units: kg/h
+    span: [0, 600000]
+    noise_pct: 0.5
+    lag_seconds: 30
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.1
+
+  - name: TI_101.PV
+    description: Crude feed temperature
+    physics_output: feed_temp_c
+    functional_location: SITE01.CDU1.STREAM.crude_feed
+    units: degC
+    span: [0, 80]
+    noise_pct: 0.5
+    lag_seconds: 60
+    drift_per_day: 0.005
+    compression_deadband_pct: 0.2
+
+  # Preheat exchanger E-101
+  - name: TI_201.PV
+    description: E-101 cold outlet temperature
+    physics_output: T_cold_out_c
+    functional_location: SITE01.CDU1.E-101
+    units: degC
+    span: [50, 350]
+    noise_pct: 0.3
+    lag_seconds: 90
+    drift_per_day: 0.01
+    compression_deadband_pct: 0.15
+
+  - name: PI_201.PV
+    description: E-101 inlet pressure
+    physics_output: P_E101_in_barg
+    functional_location: SITE01.CDU1.E-101
+    units: barg
+    span: [0, 20]
+    noise_pct: 0.4
+    lag_seconds: 15
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.2
+
+  # Furnace F-101
+  - name: TI_301.PV
+    description: Furnace outlet temperature
+    physics_output: T_furnace_c
+    functional_location: SITE01.CDU1.F-101
+    units: degC
+    span: [200, 450]
+    noise_pct: 0.2
+    lag_seconds: 120
+    drift_per_day: 0.01
+    compression_deadband_pct: 0.1
+
+  - name: FI_301.PV
+    description: Furnace fuel gas flow
+    physics_output: fuel_gas_flow_kg_s
+    functional_location: SITE01.CDU1.F-101
+    units: kg/s
+    span: [0, 5]
+    noise_pct: 0.6
+    lag_seconds: 30
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.2
+
+  - name: TI_302.PV
+    description: Furnace duty
+    physics_output: Q_furnace_W
+    functional_location: SITE01.CDU1.F-101
+    units: W
+    span: [0, 200000000]
+    noise_pct: 0.5
+    lag_seconds: 60
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.2
+
+  # Atmospheric tower T-101
+  - name: TI_401.PV
+    description: T-101 top temperature (naphtha overhead)
+    physics_output: T_top_c
+    functional_location: SITE01.CDU1.T-101
+    units: degC
+    span: [50, 200]
+    noise_pct: 0.3
+    lag_seconds: 60
+    drift_per_day: 0.01
+    compression_deadband_pct: 0.15
+
+  - name: TI_410.PV
+    description: T-101 kero draw temperature
+    physics_output: T_kero_c
+    functional_location: SITE01.CDU1.T-101
+    units: degC
+    span: [150, 280]
+    noise_pct: 0.3
+    lag_seconds: 60
+    drift_per_day: 0.01
+    compression_deadband_pct: 0.15
+
+  - name: TI_415.PV
+    description: T-101 diesel draw temperature
+    physics_output: T_diesel_c
+    functional_location: SITE01.CDU1.T-101
+    units: degC
+    span: [200, 350]
+    noise_pct: 0.3
+    lag_seconds: 60
+    drift_per_day: 0.01
+    compression_deadband_pct: 0.15
+
+  - name: TI_420.PV
+    description: T-101 AGO draw temperature
+    physics_output: T_AGO_c
+    functional_location: SITE01.CDU1.T-101
+    units: degC
+    span: [250, 400]
+    noise_pct: 0.3
+    lag_seconds: 60
+    drift_per_day: 0.01
+    compression_deadband_pct: 0.15
+
+  - name: TI_425.PV
+    description: T-101 residue temperature
+    physics_output: T_residue_c
+    functional_location: SITE01.CDU1.T-101
+    units: degC
+    span: [300, 420]
+    noise_pct: 0.3
+    lag_seconds: 60
+    drift_per_day: 0.01
+    compression_deadband_pct: 0.15
+
+  - name: PI_401.PV
+    description: T-101 top pressure
+    physics_output: P_tower_top_barg
+    functional_location: SITE01.CDU1.T-101
+    units: barg
+    span: [0, 5]
+    noise_pct: 0.4
+    lag_seconds: 15
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.2
+
+  # Product flow rates (derived from yields)
+  - name: FI_510.PV
+    description: Naphtha product flow
+    physics_output: F_naphtha_kg_h
+    functional_location: SITE01.CDU1.STREAM.naphtha_product
+    units: kg/h
+    span: [0, 150000]
+    noise_pct: 0.5
+    lag_seconds: 30
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.15
+
+  - name: FI_515.PV
+    description: Kero product flow
+    physics_output: F_kero_kg_h
+    functional_location: SITE01.CDU1.STREAM.kero_product
+    units: kg/h
+    span: [0, 100000]
+    noise_pct: 0.5
+    lag_seconds: 30
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.15
+
+  - name: FI_520.PV
+    description: Diesel product flow
+    physics_output: F_diesel_kg_h
+    functional_location: SITE01.CDU1.STREAM.diesel_product
+    units: kg/h
+    span: [0, 150000]
+    noise_pct: 0.5
+    lag_seconds: 30
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.15
+
+  - name: FI_525.PV
+    description: AGO product flow
+    physics_output: F_AGO_kg_h
+    functional_location: SITE01.CDU1.STREAM.ago_product
+    units: kg/h
+    span: [0, 80000]
+    noise_pct: 0.5
+    lag_seconds: 30
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.15
+
+  - name: FI_530.PV
+    description: Residue product flow
+    physics_output: F_residue_kg_h
+    functional_location: SITE01.CDU1.STREAM.residue_product
+    units: kg/h
+    span: [0, 250000]
+    noise_pct: 0.5
+    lag_seconds: 30
+    drift_per_day: 0.0
+    compression_deadband_pct: 0.15
