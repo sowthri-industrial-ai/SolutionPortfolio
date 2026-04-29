@@ -103,6 +103,8 @@ def detect(output_dir: Path) -> Detection | None:
 
 
 def main(argv: list[str] | None = None) -> int:
+    """Parse args, run :func:`detect`, print the result, and return an exit code."""
+
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument(
         "output_dir",
