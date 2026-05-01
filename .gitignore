@@ -1,0 +1,30 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python (catch-all for any project)
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Scratch directories — never tracked
+AISolutions/2.refinery-twin-prep/
+
+# Secrets — defense in depth
+.env
+.env.*
+*.pem
+*.key
+ngc-api-key.txt
+github-token.txt
+secrets/
