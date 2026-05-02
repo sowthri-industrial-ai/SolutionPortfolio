@@ -33,10 +33,10 @@ who is not me."
 - **AWS account ID:** 534883914089
 - **AWS account alias:** sowthri-industrial-ai
 - **AWS region:** ap-south-1 (Mumbai)
-- **AWS root email:** [your AWS root email — fill in]
+- **AWS root email:** stored in password manager (entry "AWS Root — RefineryTwin")
 - **AWS IAM admin user:** sowthri-admin
 - **AWS IAM credentials:** stored in password manager as "AWS IAM — sowthri-admin"
-- **NGC account email:** [your NGC email — fill in]
+- **NGC account email:** stored in password manager (entry "NGC Account — RefineryTwin")
 - **NGC API key:** stored in password manager as "NGC API Key — RefineryTwin"
 - **GitHub PAT:** stored in macOS keychain via `osxkeychain` credential helper
 - **SSH key path:** `~/.ssh/id_ed25519` (private), `~/.ssh/id_ed25519.pub` (public)
