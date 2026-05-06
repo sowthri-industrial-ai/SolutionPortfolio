@@ -51,7 +51,7 @@ who is not me."
 
 | Date provisioned | Region | Instance type | Public IP | Driver version | Notes |
 |---|---|---|---|---|---|
-| (pending quota approval) | ap-south-1 (Mumbai) | g6.xlarge | TBD | TBD | NVIDIA L4 GPU, 24 GB VRAM, 4 vCPU, 16 GB RAM, $0.97/hr |
+| 2026-05-05 | ap-south-1 (Mumbai) | g6.xlarge | 65.2.153.152 (changes on restart) | 580.105.08 | First instance. NVIDIA L4 GPU 24 GB VRAM. Story 0.2 instance ID `i-084dcf23391e63165`. Stopped after verification. |
 
 ---
 
@@ -73,6 +73,7 @@ who is not me."
 |---|---|---|---|---|
 | 2026-05-01 | AWS account creation, IAM, MFA, budgets | 0 | $0.00 | $0.00 |
 | 2026-05-01 | AWS promotional credits issued | — | -$120.00 (credit balance) | -$120.00 |
+| 2026-05-05 | Story 0.2 — first instance launch + verify + stop | 0.5 | ~$0.50 (covered by credits) | -$119.50 |
 
 ---
 
@@ -99,15 +100,9 @@ cp RefineryTwin/docs/charter/RUNBOOK_TEMPLATE.md RefineryTwin/docs/OPERATOR_RUNB
 
 cd ~/Documents/SolutionPortfolio
 git add .gitignore AISolutions/RefineryTwin/
-git status   # confirmed clean: only project files + repo-root .gitignore
-git diff --cached | grep -iE "ghp_|sk-|password|api[-_]?key" | head   # secrets scan, all matches in docs only
-git commit -m "phase-0/0.0: bootstrap RefineryTwin project skeleton
-
-- Charter docs in docs/charter/ (8 files)
-- Operator runbook initialized at docs/OPERATOR_RUNBOOK.md
-- Module skeleton: asset-library, data-fabric, kit-extension, isaac-scenarios
-- .gitignore at project root and repo root
-- Project README stub"
+git status
+git diff --cached | grep -iE "ghp_|sk-|password|api[-_]?key" | head   # secrets scan
+git commit -m "phase-0/0.0: bootstrap RefineryTwin project skeleton"
 git push origin main
 git tag -a phase-0-start -m "Phase 0 begins 2026-04-30 — RefineryTwin project bootstrapped"
 git push origin --tags
@@ -124,7 +119,7 @@ git push origin --tags
 
 ---
 
-### Story 0.1 — Pre-flight on Mac (IN PROGRESS, started 2026-04-30, paused 2026-05-01 awaiting AWS quota approval)
+### Story 0.1 — Pre-flight on Mac (DONE 2026-05-05)
 
 #### Block 1 — SSH key generation (DONE 2026-04-30)
 
@@ -161,7 +156,7 @@ Generated Personal Key under Profile → Personal Keys.
 **Storage:** Saved in password manager as "NGC API Key — RefineryTwin".
 
 **Issues encountered & resolution:**
-- *Initial confusion:* NGC's UI splits "Personal Keys", "Secret Manager", "NGC Catalog" as menu items. Only "Personal Keys" is the credential type we need. "Secret Manager" is for storing other credentials inside NGC; "NGC Catalog" is the container browse view, not a credential.
+- *Initial confusion:* NGC's UI splits "Personal Keys", "Secret Manager", "NGC Catalog" as menu items. Only "Personal Keys" is the credential type we need.
 - *Resolution:* Click Personal Keys, generate new, tick NGC Catalog + Private Registry services minimum.
 
 #### Block 3 — Cloud provider account: AWS (DONE 2026-05-01)
@@ -185,7 +180,7 @@ Generated Personal Key under Profile → Personal Keys.
 5. **Enabled IAM access to billing**
    - Account name (top-right) → Account → IAM User and Role Access to Billing → Edit → Activate IAM Access
 6. **Created two AWS Budgets:**
-   - `RefineryTwin-EarlyWarning`: $10/month, alerts via email at 100% (i.e., $10 spent triggers alert)
+   - `RefineryTwin-EarlyWarning`: $10/month, alerts via email at 100%
    - `RefineryTwin-MonthlyBudget`: $100/month, alerts at 85% and 100%
    - Note: budgets initially set to $5/$10 (too conservative — single 12-hour overnight mistake costs $12), raised to $10/$100 after recalibration
 7. **Signed out of root, signed in as `sowthri-admin`** via IAM user URL
@@ -203,8 +198,8 @@ Generated Personal Key under Profile → Personal Keys.
 - Default region: `ap-south-1`
 
 **Issues encountered & resolution:**
-- *Confusion about budget realism:* Initial budgets at $5 / $10 were too low for a $0.97/hr GPU project — would trigger alerts on day 2 of normal use. Raised to $10 / $100 to match project reality. This matters because AWS reviewers reading the appeal will notice unrealistic budget caps as a possible red flag.
-- *Confusion: AWS Free Tier program vs Free Tier promotional credit:* The "AWS Free Tier" credit name is misleading — it's NOT restricted to "free-tier-eligible" services. It's a $100 general-purpose credit that applies to GPU EC2. Verified by checking the credit's eligible-services list (full directory of AWS services including Amazon Elastic Compute Cloud).
+- *Initial budgets too conservative:* $5 / $10 thresholds would have triggered alerts on day 2 of normal use. Raised to $10 / $100. Realistic budgets matter for AWS reviewer perception too — unrealistic caps look like a red flag.
+- *AWS Free Tier program vs Free Tier credit naming confusion:* The "AWS Free Tier" credit name is misleading — it's NOT restricted to "free-tier-eligible" services. It's a $100 general-purpose credit that applies to GPU EC2. Verified by checking the credit's eligible-services list (full directory of AWS services including Amazon Elastic Compute Cloud).
 
 #### Block 4 — SSH key uploaded to AWS (DONE 2026-05-01)
 
@@ -222,76 +217,146 @@ EC2 → Network & Security → Key Pairs → Import key pair.
 **Issues encountered & resolution:**
 - None.
 
-#### Block 5 — Pre-flight checks + quota request (IN PROGRESS 2026-05-01, BLOCKED on AWS approval)
+#### Block 5 — Pre-flight checks + quota request (DONE 2026-05-05)
 
 **Instance type selection:**
 - Originally planned: g5.xlarge ($1.21/hr, A10G GPU) per Lambda-era plan
 - After analyzing Mumbai region availability via uploaded CSV of all 37 GPU instance types, switched to: **g6.xlarge** ($0.97/hr, 4 vCPUs, 1× NVIDIA L4 GPU 24 GB VRAM)
 - Reason: newer Ada Lovelace architecture (vs g5's Ampere), 20% cheaper, identical practical capability for Omniverse Kit workload
-- Excluded from consideration: g6e ($2.24/hr — overkill), p4d/p5/p5en (research-grade $26-76/hr — far too expensive)
+- Excluded: g6e ($2.24/hr — overkill), p4d/p5/p5en (research-grade $26-76/hr — far too expensive)
 
 **Service Quota check:**
 - Service Quotas → EC2 → "Running On-Demand G and VT instances"
 - Quota code: `L-DB2E81BA`
 - Region: ap-south-1
-- **Applied account-level quota value: 0** (default for new accounts)
+- Default for new accounts: 0
 
 **Quota request #1 — DENIED (2026-05-01 ~3:30pm IST):**
-```
-Request submitted via Service Quotas console
-Requested quota value: 4 (= one g6.xlarge worth of vCPUs)
-Form had no use-case description field
-Status flipped to: Pending
-```
-
-**Denial received ~30 min later via email:**
-> Hello, I am sorry but at this time we are unable to approve your service quota increase request. Service quotas are put in place to help you gradually ramp up activity and decrease the likelihood of large bills due to sudden, unexpected spikes. If you'd like to appeal this decision, please reopen this case and provide as detailed a use case as possible. With this additional information, we would be more than happy to re-assess this request.
+- Submitted via Service Quotas console requesting value 4
+- Form had no use-case description field
+- Auto-denied within ~30 minutes
+- Email cited: "Service quotas are put in place to help you gradually ramp up activity"
+- Email invited reopen with detailed use case
 
 **Quota request #2 — APPEAL via AWS Support chat (SUBMITTED 2026-05-01 ~6:30pm IST):**
+- Opened AWS Support Center → started live chat
+- Agent: **Esteban**
+- Provided detailed use case: NVIDIA Omniverse Kit project, GitHub link, cost controls, account context
+- Esteban submitted formal exception request to EC2 team
+- Esteban's response: "We need to wait for the EC2 team to review this, generally not all features are immediately available on your account since it is brand new... I have asked to see if an exception can be made so you can access these G instances earlier than usual"
 
-Opened AWS Support Center → started live chat. Agent: **Esteban**.
+**Wait period (2026-05-01 evening through 2026-05-05 morning):**
+- Weekend in between (Saturday and Sunday) — AWS Trust & Safety team weekday-staffed
+- Status: Pending Amazon action throughout
+- 4 business days elapsed from escalation to follow-up
 
-**Appeal use case provided** (paraphrased into chat):
-- Personal portfolio project for senior engineering interview in digital twin / Physical AI space
-- Building NVIDIA Omniverse Kit application + Isaac Sim scenarios for refinery digital twin
-- Project documented publicly: https://github.com/sowthri-industrial-ai/SolutionPortfolio/tree/main/AISolutions/RefineryTwin
-- Specific resource: single g6.xlarge in ap-south-1 (4 vCPUs, 1× NVIDIA L4 GPU)
-- Cost controls: AWS Budgets $10/$100, MFA on root, dedicated IAM admin user, $120 promotional credits
-- Estimated 125 instance-hours over 5 weeks, well within credit balance
+**Polite follow-up via chat (2026-05-05 ~7:25am IST):**
+- Reopened the case via AWS Support chat
+- Agent: **Richa**
+- Briefly checked in on status, asked if anything else needed
+- Approval confirmed live in chat at 7:29am IST: "I'm pleased to inform you that your request for All G and VT instances has been approved. Your new quota is 4."
+- Richa: "Please try launching an instance and check if it works for you"
 
-**Esteban's response:**
-> We need to wait for the EC2 team to review this, generally not all features are immediately available on your account since it is brand new, just created today. I have asked to see if an exception can be made so you can access these G instances earlier than usual, once we have a response I will let you know.
+**Status as of 2026-05-05:**
+- Case ID: 177764536900839 (Resolved)
+- Applied account-level quota value: 4 (verified in console)
+- Unblocked: Story 0.2 launch
 
-**Status as of 2026-05-02 morning (Saturday IST):**
-- Case ID: `177764536900839`
-- Case status: **Pending Amazon action**
-- No new correspondence overnight
-- AWS Support technically operates 24/7 but quota approvals slow on weekends — realistic response window: today afternoon to Monday Mumbai time
+**Plan B status:**
+- JarvisLabs (https://jarvislabs.ai) was kept ready as backup throughout the wait
+- Not used — AWS path resolved cleanly
+- Documentation kept in case of future provider needs
 
-**Plan B if denied or excessively delayed:**
-JarvisLabs (https://jarvislabs.ai), Indian provider, L4 GPU at $0.44/hr, instant access, no quota gates, accepts Indian payment methods. Owner has confirmed payment access. Hardware (L4) is identical to AWS g6.xlarge. Software stack (PyTorch-focused image) would need manual Omniverse Kit + Isaac Sim install — same effort as on AWS, possibly with 2-4 hours additional debugging if their pre-baked image conflicts. Not committed yet — only opened if AWS denies.
+---
+
+### Story 0.2 — AWS instance launched (DONE 2026-05-05)
+
+**What was done:**
+- Launched first g6.xlarge instance via EC2 console wizard
+- SSH'd from Mac to instance using existing ed25519 key pair
+- Verified NVIDIA L4 GPU detected and operational via `nvidia-smi`
+- Stopped instance cleanly to halt billing
+
+**Instance details:**
+- Instance ID: `i-084dcf23391e63165`
+- Region: ap-south-1 (Mumbai)
+- Availability Zone: ap-south-1b
+- Type: g6.xlarge ($0.97/hr while Running)
+- AMI: `ami-001ba428c0f3efe11` — Deep Learning OSS Nvidia Driver AMI GPU PyTorch 2.6.0 (Ubuntu 22.04) build 20260103
+- Public IP at first boot: `65.2.153.152` (changes on each restart — note that)
+- Public DNS at first boot: `ec2-65-2-153-152.ap-south-1.compute.amazonaws.com`
+- Security group: `refinery-twin-sg` (SSH from My IP only, source `5.244.109.155/32`)
+- Key pair: `sowthri-mac-refinery-twin`
+- EBS root volume: 200 GiB gp3, encrypted, delete-on-termination=Yes
+- Instance store: 250 GB NVMe SSD ephemeral (free; wiped on stop)
+- Total storage shown in summary: 2 volume(s) - 450 GiB (200 EBS + 250 instance store)
+
+**Working SSH command:**
+```bash
+ssh -i ~/.ssh/id_ed25519 ubuntu@<public-ip>
+# First-time fingerprint prompt: type "yes"
+# Server fingerprint stored to ~/.ssh/known_hosts
+```
+
+**SSH key flow (verified):**
+- Local: `~/.ssh/id_ed25519` (mode 600), fingerprint `SHA256:6mV0wTzN0uL7kCbiHuVWcDA+WMGr5Pzl9HBXMcYsS88`
+- Remote: AWS pushes the registered Key Pair's public key into `/home/ubuntu/.ssh/authorized_keys` automatically at instance launch
+- Auth flow: server sends challenge, Mac signs with private key (key never leaves Mac), server verifies signature against public key
+
+**Verification — `nvidia-smi` output (2026-05-05 19:01:54 UTC):**
+```
+NVIDIA-SMI 580.105.08    Driver Version: 580.105.08    CUDA Version: 13.0
+GPU 0: NVIDIA L4
+  - Bus-Id:        00000000:31:00.0
+  - Display:       Off
+  - Persistence-M: On
+  - Fan:           N/A
+  - Temp:          29C
+  - Performance:   P8 (idle)
+  - Power:         12W / 72W
+  - Memory:        0 MiB / 23034 MiB (24 GB total)
+  - Utilization:   0%
+No running processes
+```
+
+All values consistent with a healthy idle L4 GPU on Linux:
+- Driver 580.x is recent and stable
+- CUDA 13.0 available (newer than the AMI banner suggested 12.6)
+- 23034 MiB total memory ~ 24 GB nominal (driver overhead accounts for the small delta)
+
+**Workflow that works (memorize):**
+1. Launch via EC2 console -> wait for state = Running, status = 2/2 (~3 min)
+2. Get public IP from instance row
+3. SSH from Mac terminal: `ssh -i ~/.ssh/id_ed25519 ubuntu@<ip>`
+4. Do work
+5. Exit SSH: `exit`
+6. Stop via EC2 console: select instance -> Instance state -> Stop instance
+7. Verify state shows "Stopped" before walking away
+
+**Stop discipline (CRITICAL — re-emphasize):**
+- Instance MUST be stopped at end of every work session
+- "Stopped" = $0 compute charges (only ~$0.02/hr EBS storage)
+- "Running" = $0.97/hr — leaving overnight burns ~$8 for nothing
+- AWS Budgets configured: $10 early warning will email if forgotten
+- Discipline beats budgets; budgets are a backstop, not a permission slip
+
+**Issues encountered & resolution:**
+- *Storage UI added an unwanted Volume 2 (8 GiB):* During launch wizard, an extra 8 GiB EBS volume appeared (Not encrypted, Delete-on-termination=No). Removed via the Remove button before clicking Launch. The 250 GB NVMe instance store is separate and free.
+- *Source type "My IP" not in dropdown initially:* When configuring the security group rule, "Source type" dropdown didn't show My IP option until the rule was removed and re-added through "Add security group rule" flow. AWS UI inconsistency — workaround was simple, just needed extra clicks.
+- *AWS new-account quota of 0 (resolved earlier):* See Story 0.1 Block 5 for full chronicle of quota appeal saga.
 
 ---
 
 ### What's NOT done yet in Phase 0
 
-After AWS quota approves:
-
-- **Story 0.2** — Launch g6.xlarge, SSH in, run nvidia-smi (~30 min)
-- **Story 0.3** — Install system dependencies (Vulkan, Xvfb, x11vnc, novnc, websockify) (~30 min)
+- **Story 0.3** — Install system dependencies (Vulkan, Xvfb, x11vnc, novnc, websockify) (~30 min, ~$0.30)
 - **Story 0.4** — Verify Vulkan + GPU recognized by `vulkaninfo --summary` (~15 min)
 - **Story 0.5** — Clone kit-app-template, build Kit Base Editor (~60 min)
 - **Story 0.6** — Boot Kit headlessly under Xvfb, confirm clean startup (~30 min)
 - **Story 0.7** — Set up VNC tunnel from Mac to cloud, see Kit window in browser (~30 min)
 - **Story 0.8** — Phase 0 snapshot (EBS), document snapshot ID, test boot-from-snapshot (~15 min)
 
-Total Phase 0 remaining: ~3.5 hours of focused work after GPU access lands.
-
----
-
-### Story 0.2 — AWS instance launched
-
-(awaiting quota approval — to be filled in)
+Total Phase 0 remaining: ~3 hours of focused work across 6 stories.
 
 ---
 
@@ -381,6 +446,10 @@ For when you come back to this in 6 months and forget what something means.
 | MFA | Multi-Factor Authentication — second factor beyond password (TOTP code from app) |
 | Quota | AWS limit on resource usage (e.g., max vCPUs of GPU instances). New accounts default to 0 for GPU. |
 | L4 | NVIDIA L4 GPU (Ada Lovelace architecture, 24 GB VRAM). Our GPU. |
+| AMI | Amazon Machine Image — pre-baked disk image AWS clones to your instance at boot |
+| EBS | Elastic Block Store — AWS's persistent disk service. Billed per GiB-month even when stopped. |
+| Instance store | Local NVMe SSD on the host. Free, ephemeral, wiped on stop. |
+| g6.xlarge | Our chosen instance type: 4 vCPU, 16 GB RAM, 1x NVIDIA L4, $0.97/hr |
 
 ---
 
@@ -394,7 +463,7 @@ For when you come back to this in 6 months and forget what something means.
 
 ### NGC menu reorganization — "Setup" became "Personal Keys" (2026-04-30)
 
-**Symptom:** Charter said "Profile → Setup" but the dropdown showed "Key Permission Services / Secret Manager / NGC Catalog" instead.
+**Symptom:** Charter said "Profile -> Setup" but the dropdown showed "Key Permission Services / Secret Manager / NGC Catalog" instead.
 **Root cause:** NVIDIA redesigned NGC menus in 2024-2025. Credential generation flow moved from "Setup" to "Personal Keys".
 **Resolution:** Direct URL works regardless of UI changes: `https://ngc.nvidia.com/setup` or `https://ngc.nvidia.com/setup/personal-keys`. Of the visible menu items, "Personal Keys" is the right one (not Secret Manager, not Catalog).
 
@@ -410,11 +479,23 @@ For when you come back to this in 6 months and forget what something means.
 **Root cause:** Brand-new account + GPU request + no use case provided = automatic high-risk flagging.
 **Resolution:** Always use AWS Support chat for first-time GPU requests on new accounts. Provide: real project description, GitHub URL for verification, specific minimum instance, cost controls already in place. Don't ask for headroom — request the exact minimum.
 
-### AWS quota approvals slow on weekends (observed 2026-05-02)
+### AWS quota approvals slow on weekends (observed 2026-05-02 to 2026-05-05)
 
-**Symptom:** Case submitted Friday evening Mumbai time, status still "Pending Amazon action" Saturday morning.
-**Root cause:** AWS Support operates 24/7 but quota review (Trust & Safety team) is heavier weekday-staffed. New-account exception requests need human judgment, which queues until business hours resume.
-**Resolution:** Don't refresh case page repeatedly on weekends. Use the wait time for runbook updates, charter deltas, and reading prep docs. Realistic approval window for weekend submissions: Monday Mumbai business hours.
+**Symptom:** Case submitted Friday evening Mumbai time, status still "Pending Amazon action" Saturday morning. Took 4 business days to resolve.
+**Root cause:** AWS Support operates 24/7 but quota review (Trust & Safety / EC2 team) is heavier weekday-staffed. New-account exception requests need human judgment, which queues until business hours resume.
+**Resolution:** Don't refresh case page repeatedly on weekends. Use the wait time for runbook updates, charter deltas, and reading prep docs. For new accounts, file quota requests early in the week (Monday/Tuesday) to avoid weekend stall. A polite follow-up via chat after 3+ business days can move things along.
+
+### Storage configuration UI auto-attaches unwanted volumes (2026-05-05)
+
+**Symptom:** During EC2 launch wizard, after configuring the root volume to 200 GiB, an additional 8 GiB Volume 2 appeared with Not-encrypted and Delete-on-termination=No defaults.
+**Root cause:** AWS launch wizard sometimes auto-attaches secondary volumes based on AMI defaults or session state. Behavior is inconsistent.
+**Resolution:** Always inspect the Configure storage section carefully before launching. Click Remove on any unwanted volumes. The Summary panel "X volume(s) - Y GiB" includes both EBS and ephemeral instance store, which can be confusing — instance store is free and ephemeral, EBS is billed and persistent.
+
+### Security group "Source type" dropdown sometimes lacks "My IP" (2026-05-05)
+
+**Symptom:** When configuring inbound SSH rule, "Source type" dropdown didn't show My IP option immediately.
+**Root cause:** AWS UI inconsistency — depending on how you arrived at the rule (auto-created vs manually added), the available source-type options differ.
+**Resolution:** Remove the auto-created rule and add a fresh one via "Add security group rule" button. The fresh rule's Source type dropdown reliably includes My IP.
 
 ---
 
@@ -427,11 +508,13 @@ For when you come back to this in 6 months and forget what something means.
 | 2026-04-29 | HTTPS + PAT for git auth, NOT SSH for git | Owner preference; PAT cached in macOS keychain |
 | 2026-04-29 | Repos public from day one | Owner preference for transparency and recruiter-readability |
 | 2026-04-29 | Kit extension namespace: `com.sowthri.cdutwin` | Hyphens illegal in Python package names |
-| 2026-04-30 | **PIVOT: Lambda Labs → AWS** for cloud provider | Lambda's payment processor declined Saudi-issued card; Lambda doesn't accept PayPal; Lambda has no India region. AWS Mumbai is closer to Saudi than Lambda's US-only data centers, accepts the card, and has $120 in promotional credits. |
+| 2026-04-30 | **PIVOT: Lambda Labs -> AWS** for cloud provider | Lambda's payment processor declined Saudi-issued card; Lambda doesn't accept PayPal; Lambda has no India region. AWS Mumbai is closer to Saudi than Lambda's US-only data centers, accepts the card, and has $120 in promotional credits. |
 | 2026-04-30 | AWS region: ap-south-1 (Mumbai) | Closest available region with reliable g6 capacity; 120ms latency from Dammam (acceptable for SSH+VNC); Aramco runs many workloads from Mumbai (interview relevance) |
 | 2026-04-30 | Instance type: g6.xlarge (L4 GPU) instead of g5.xlarge (A10G) | Newer Ada architecture, 20% cheaper, equivalent capability for Omniverse Kit. CSV analysis of all 37 GPU types in Mumbai confirmed this is the right size/cost point. |
-| 2026-04-30 | AWS Budgets: $10 early warning + $100 monthly cap | Realistic for $0.97/hr × ~125-hour project usage; lower thresholds caused false-positive alerts |
+| 2026-04-30 | AWS Budgets: $10 early warning + $100 monthly cap | Realistic for $0.97/hr x ~125-hour project usage; lower thresholds caused false-positive alerts |
 | 2026-05-01 | JarvisLabs (https://jarvislabs.ai) chosen as Plan B if AWS denies | Indian provider, instant access, no quota gates, $0.44/hr L4 instances, accepts Indian payment methods. Hardware identical to AWS g6.xlarge. |
+| 2026-05-05 | AWS GPU quota appeal granted via human Support chat (4 vCPUs in ap-south-1) | Brand-new account flagged for fraud prevention. First automated request denied; appeal via chat with detailed use case + GitHub URL succeeded. Esteban submitted appeal Friday; Richa confirmed approval Tuesday morning. Realistic time-to-approval for new-account GPU access: 2-4 business days, not 24 hours. |
+| 2026-05-05 | EBS root volume sized at 200 GiB gp3, encrypted, delete-on-termination=Yes | Sized for full project: Kit (~30 GB) + Isaac Sim (~50 GB) + drivers + USD + buffer. Encryption is free at-rest data protection. Delete-on-terminate prevents orphaned billing. Instance store (250 GB NVMe) accepted as free ephemeral scratch. |
 
 ---
 
