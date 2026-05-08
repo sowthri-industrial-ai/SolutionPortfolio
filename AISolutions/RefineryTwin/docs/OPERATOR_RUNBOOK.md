@@ -47,17 +47,13 @@ who is not me."
 
 ## Cloud instance details
 
-(updated as instance is rebuilt across the project)
-
 | Date provisioned | Region | Instance type | Public IP | Driver version | Notes |
 |---|---|---|---|---|---|
-| 2026-05-05 | ap-south-1 (Mumbai) | g6.xlarge | 65.2.153.152 (changes on restart) | 580.105.08 | First instance. NVIDIA L4 GPU 24 GB VRAM. Story 0.2 instance ID `i-084dcf23391e63165`. Stopped after verification. |
+| 2026-05-05 | ap-south-1 (Mumbai) | g6.xlarge | Changes per restart (latest: 3.110.118.104) | 580.105.08 | First instance. NVIDIA L4 GPU 24 GB VRAM. Story 0.2-0.7 instance ID `i-084dcf23391e63165`. Currently Stopped. |
 
 ---
 
 ## Snapshots
-
-(every phase boundary creates one)
 
 | Date | Phase | Snapshot ID | Size (GB) | Boot-from-snapshot tested? | Notes |
 |---|---|---|---|---|---|
@@ -67,13 +63,12 @@ who is not me."
 
 ## Cost log
 
-(track spend over the project)
-
 | Date | Activity | Hours | Cost (USD) | Cumulative |
 |---|---|---|---|---|
 | 2026-05-01 | AWS account creation, IAM, MFA, budgets | 0 | $0.00 | $0.00 |
 | 2026-05-01 | AWS promotional credits issued | — | -$120.00 (credit balance) | -$120.00 |
 | 2026-05-05 | Story 0.2 — first instance launch + verify + stop | 0.5 | ~$0.50 (covered by credits) | -$119.50 |
+| 2026-05-08 | Stories 0.3-0.7 — deps install + Vulkan verify + Kit build + Kit boot + VNC | ~2.0 | ~$1.94 (covered by credits) | -$117.56 |
 
 ---
 
@@ -90,24 +85,6 @@ who is not me."
 - Wrote README.md stub
 - First commit, push, tag
 
-**Working commands:**
-```bash
-cd ~/Documents/SolutionPortfolio/AISolutions
-mkdir -p RefineryTwin/{docs/charter,docs/media,asset-library,data-fabric,kit-extension,isaac-scenarios}
-cp 2.refinery-twin-prep/charter/*.md RefineryTwin/docs/charter/
-cp RefineryTwin/docs/charter/RUNBOOK_TEMPLATE.md RefineryTwin/docs/OPERATOR_RUNBOOK.md
-# created README.md and .gitignore via cat heredocs (see git history for content)
-
-cd ~/Documents/SolutionPortfolio
-git add .gitignore AISolutions/RefineryTwin/
-git status
-git diff --cached | grep -iE "ghp_|sk-|password|api[-_]?key" | head   # secrets scan
-git commit -m "phase-0/0.0: bootstrap RefineryTwin project skeleton"
-git push origin main
-git tag -a phase-0-start -m "Phase 0 begins 2026-04-30 — RefineryTwin project bootstrapped"
-git push origin --tags
-```
-
 **Result:**
 - Commit hash: `44790b8`
 - 12 files changed, 2819 insertions
@@ -115,7 +92,7 @@ git push origin --tags
 - Visible at: https://github.com/sowthri-industrial-ai/SolutionPortfolio/tree/main/AISolutions/RefineryTwin
 
 **Issues encountered & resolution:**
-- None. Smooth execution.
+- None.
 
 ---
 
@@ -123,149 +100,68 @@ git push origin --tags
 
 #### Block 1 — SSH key generation (DONE 2026-04-30)
 
-Generated ed25519 SSH key for cloud access. macOS native `ssh-keygen`.
-
-**Working commands:**
 ```bash
 ssh-keygen -t ed25519 -C "sowthri2020@yahoo.com"
 # 3x Enter: default location, no passphrase, confirm no passphrase
 ```
 
-**Result:**
+Result:
 - Private key: `~/.ssh/id_ed25519` (mode 600)
 - Public key: `~/.ssh/id_ed25519.pub` (mode 644)
 - Fingerprint: `SHA256:6mV0wTzN0uL7kCbiHuVWcDA+WMGr5Pzl9HBXMcYsS88`
 
-To copy public key to clipboard for paste into cloud console:
+To copy public key to clipboard for paste:
 ```bash
 pbcopy < ~/.ssh/id_ed25519.pub
 ```
-
-**Issues encountered & resolution:**
-- None.
 
 #### Block 2 — NGC account + Personal Key (DONE 2026-04-30)
 
 Created NGC account at https://ngc.nvidia.com.
 Generated Personal Key under Profile → Personal Keys.
+Services granted: NGC Catalog + Private Registry.
+Storage: Saved in password manager as "NGC API Key — RefineryTwin".
 
-**Services granted to the key:**
-- NGC Catalog (required to pull container images)
-- Private Registry (required for org-private images)
+#### Block 3 — AWS account + security baseline (DONE 2026-05-01)
 
-**Storage:** Saved in password manager as "NGC API Key — RefineryTwin".
+After Lambda Labs → AWS pivot (Saudi card declined at Lambda).
 
-**Issues encountered & resolution:**
-- *Initial confusion:* NGC's UI splits "Personal Keys", "Secret Manager", "NGC Catalog" as menu items. Only "Personal Keys" is the credential type we need.
-- *Resolution:* Click Personal Keys, generate new, tick NGC Catalog + Private Registry services minimum.
+Steps performed:
+1. Account created at https://aws.amazon.com
+2. MFA enabled on root account (Google Authenticator, named `sowthri-root-phone`)
+3. Verified MFA by signing out and back in
+4. Created IAM user `sowthri-admin` with AdministratorAccess policy
+5. Enabled IAM access to billing
+6. Created two Budgets: $10 early warning + $100 monthly cap
+7. Signed out root, signed in as IAM user
+8. Confirmed region: Asia Pacific (Mumbai) `ap-south-1`
+9. Verified $120 in promotional credits ($100 Free Tier + $20 Explore AWS, both expire 2027-05-01)
 
-#### Block 3 — Cloud provider account: AWS (DONE 2026-05-01)
-
-**Major pivot from original plan.** Original Lambda Labs plan abandoned. See Decision log below.
-
-**AWS setup performed:**
-
-1. **Account created** at https://aws.amazon.com (fresh signup, new email)
-2. **MFA enabled on root account** using Google Authenticator
-   - Console → top-right account dropdown → Security credentials
-   - Multi-factor authentication → Assign MFA device
-   - Authenticator app, named `sowthri-root-phone`, scanned QR, entered 2 consecutive TOTP codes
-3. **Verified MFA** by signing out completely, signing back in
-   - Confirmed: password AND TOTP code both required
-4. **Created IAM user `sowthri-admin`** (admin alternative to root)
-   - IAM → Users → Create user
-   - Provided console access, custom password, no force-reset
-   - Attached AWS managed policy: `AdministratorAccess`
-   - Saved IAM sign-in URL + username + password in password manager
-5. **Enabled IAM access to billing**
-   - Account name (top-right) → Account → IAM User and Role Access to Billing → Edit → Activate IAM Access
-6. **Created two AWS Budgets:**
-   - `RefineryTwin-EarlyWarning`: $10/month, alerts via email at 100%
-   - `RefineryTwin-MonthlyBudget`: $100/month, alerts at 85% and 100%
-   - Note: budgets initially set to $5/$10 (too conservative — single 12-hour overnight mistake costs $12), raised to $10/$100 after recalibration
-7. **Signed out of root, signed in as `sowthri-admin`** via IAM user URL
-   - Confirmed: top-right shows `sowthri-industrial-ai (534883914089)` and `sowthri-admin`
-8. **Confirmed region:** Asia Pacific (Mumbai) `ap-south-1`
-9. **Verified $120 in promotional credits**
-   - $100 "AWS Free Tier" (general-purpose, applies to EC2)
-   - $20 "Explore AWS: Set up a cost budget"
-   - Both expire 2027-05-01
-
-**Account details for reference:**
+Account details:
 - AWS account ID: `534883914089`
 - AWS account alias: `sowthri-industrial-ai`
 - IAM user: `sowthri-admin`
 - Default region: `ap-south-1`
 
-**Issues encountered & resolution:**
-- *Initial budgets too conservative:* $5 / $10 thresholds would have triggered alerts on day 2 of normal use. Raised to $10 / $100. Realistic budgets matter for AWS reviewer perception too — unrealistic caps look like a red flag.
-- *AWS Free Tier program vs Free Tier credit naming confusion:* The "AWS Free Tier" credit name is misleading — it's NOT restricted to "free-tier-eligible" services. It's a $100 general-purpose credit that applies to GPU EC2. Verified by checking the credit's eligible-services list (full directory of AWS services including Amazon Elastic Compute Cloud).
-
 #### Block 4 — SSH key uploaded to AWS (DONE 2026-05-01)
 
 EC2 → Network & Security → Key Pairs → Import key pair.
-
-**Form fields:**
-- Name: `sowthri-mac-refinery-twin`
-- Key pair file: pasted from `pbcopy < ~/.ssh/id_ed25519.pub`
-
-**Verification:**
-- Key visible in Mumbai region's Key Pairs list
-- Type: ed25519
-- Fingerprint matches local: `SHA256:6mV0wTzN0uL7kCbiHuVWcDA+WMGr5Pzl9HBXMcYsS88`
-
-**Issues encountered & resolution:**
-- None.
+Name: `sowthri-mac-refinery-twin`
+Pasted from `pbcopy < ~/.ssh/id_ed25519.pub`.
+Fingerprint matches local: `SHA256:6mV0wTzN0uL7kCbiHuVWcDA+WMGr5Pzl9HBXMcYsS88`.
 
 #### Block 5 — Pre-flight checks + quota request (DONE 2026-05-05)
 
-**Instance type selection:**
-- Originally planned: g5.xlarge ($1.21/hr, A10G GPU) per Lambda-era plan
-- After analyzing Mumbai region availability via uploaded CSV of all 37 GPU instance types, switched to: **g6.xlarge** ($0.97/hr, 4 vCPUs, 1× NVIDIA L4 GPU 24 GB VRAM)
-- Reason: newer Ada Lovelace architecture (vs g5's Ampere), 20% cheaper, identical practical capability for Omniverse Kit workload
-- Excluded: g6e ($2.24/hr — overkill), p4d/p5/p5en (research-grade $26-76/hr — far too expensive)
+Instance type chosen: g6.xlarge ($0.97/hr, 4 vCPUs, 1× NVIDIA L4 GPU 24 GB VRAM).
+Quota code: L-DB2E81BA in ap-south-1.
 
-**Service Quota check:**
-- Service Quotas → EC2 → "Running On-Demand G and VT instances"
-- Quota code: `L-DB2E81BA`
-- Region: ap-south-1
-- Default for new accounts: 0
-
-**Quota request #1 — DENIED (2026-05-01 ~3:30pm IST):**
-- Submitted via Service Quotas console requesting value 4
-- Form had no use-case description field
-- Auto-denied within ~30 minutes
-- Email cited: "Service quotas are put in place to help you gradually ramp up activity"
-- Email invited reopen with detailed use case
-
-**Quota request #2 — APPEAL via AWS Support chat (SUBMITTED 2026-05-01 ~6:30pm IST):**
-- Opened AWS Support Center → started live chat
-- Agent: **Esteban**
-- Provided detailed use case: NVIDIA Omniverse Kit project, GitHub link, cost controls, account context
-- Esteban submitted formal exception request to EC2 team
-- Esteban's response: "We need to wait for the EC2 team to review this, generally not all features are immediately available on your account since it is brand new... I have asked to see if an exception can be made so you can access these G instances earlier than usual"
-
-**Wait period (2026-05-01 evening through 2026-05-05 morning):**
-- Weekend in between (Saturday and Sunday) — AWS Trust & Safety team weekday-staffed
-- Status: Pending Amazon action throughout
-- 4 business days elapsed from escalation to follow-up
-
-**Polite follow-up via chat (2026-05-05 ~7:25am IST):**
-- Reopened the case via AWS Support chat
-- Agent: **Richa**
-- Briefly checked in on status, asked if anything else needed
-- Approval confirmed live in chat at 7:29am IST: "I'm pleased to inform you that your request for All G and VT instances has been approved. Your new quota is 4."
-- Richa: "Please try launching an instance and check if it works for you"
-
-**Status as of 2026-05-05:**
+Quota saga:
+- Request #1 via console form: auto-denied within 30 min
+- Request #2 via Support chat (Esteban): submitted 2026-05-01 ~6:30pm IST, escalated to EC2 team
+- Wait period: weekend + 4 business days
+- Polite follow-up via chat (Richa): 2026-05-05 ~7:25am IST
+- Approval confirmed at 7:29am IST: "Your new quota is 4"
 - Case ID: 177764536900839 (Resolved)
-- Applied account-level quota value: 4 (verified in console)
-- Unblocked: Story 0.2 launch
-
-**Plan B status:**
-- JarvisLabs (https://jarvislabs.ai) was kept ready as backup throughout the wait
-- Not used — AWS path resolved cleanly
-- Documentation kept in case of future provider needs
 
 ---
 
@@ -279,114 +175,353 @@ EC2 → Network & Security → Key Pairs → Import key pair.
 
 **Instance details:**
 - Instance ID: `i-084dcf23391e63165`
-- Region: ap-south-1 (Mumbai)
-- Availability Zone: ap-south-1b
+- Region: ap-south-1 (Mumbai), AZ: ap-south-1b
 - Type: g6.xlarge ($0.97/hr while Running)
 - AMI: `ami-001ba428c0f3efe11` — Deep Learning OSS Nvidia Driver AMI GPU PyTorch 2.6.0 (Ubuntu 22.04) build 20260103
-- Public IP at first boot: `65.2.153.152` (changes on each restart — note that)
-- Public DNS at first boot: `ec2-65-2-153-152.ap-south-1.compute.amazonaws.com`
+- Public IP: changes per restart (first: 65.2.153.152, later: 3.110.118.104)
 - Security group: `refinery-twin-sg` (SSH from My IP only, source `5.244.109.155/32`)
 - Key pair: `sowthri-mac-refinery-twin`
 - EBS root volume: 200 GiB gp3, encrypted, delete-on-termination=Yes
 - Instance store: 250 GB NVMe SSD ephemeral (free; wiped on stop)
-- Total storage shown in summary: 2 volume(s) - 450 GiB (200 EBS + 250 instance store)
 
 **Working SSH command:**
 ```bash
 ssh -i ~/.ssh/id_ed25519 ubuntu@<public-ip>
 # First-time fingerprint prompt: type "yes"
-# Server fingerprint stored to ~/.ssh/known_hosts
 ```
 
-**SSH key flow (verified):**
-- Local: `~/.ssh/id_ed25519` (mode 600), fingerprint `SHA256:6mV0wTzN0uL7kCbiHuVWcDA+WMGr5Pzl9HBXMcYsS88`
-- Remote: AWS pushes the registered Key Pair's public key into `/home/ubuntu/.ssh/authorized_keys` automatically at instance launch
-- Auth flow: server sends challenge, Mac signs with private key (key never leaves Mac), server verifies signature against public key
+**Verification — `nvidia-smi`:**
+- NVIDIA L4 detected
+- Driver 580.105.08, CUDA 13.0
+- 23034 MiB VRAM total
+- Idle: 12W/72W, 29°C, 0% utilization
 
-**Verification — `nvidia-smi` output (2026-05-05 19:01:54 UTC):**
-```
-NVIDIA-SMI 580.105.08    Driver Version: 580.105.08    CUDA Version: 13.0
-GPU 0: NVIDIA L4
-  - Bus-Id:        00000000:31:00.0
-  - Display:       Off
-  - Persistence-M: On
-  - Fan:           N/A
-  - Temp:          29C
-  - Performance:   P8 (idle)
-  - Power:         12W / 72W
-  - Memory:        0 MiB / 23034 MiB (24 GB total)
-  - Utilization:   0%
-No running processes
-```
-
-All values consistent with a healthy idle L4 GPU on Linux:
-- Driver 580.x is recent and stable
-- CUDA 13.0 available (newer than the AMI banner suggested 12.6)
-- 23034 MiB total memory ~ 24 GB nominal (driver overhead accounts for the small delta)
-
-**Workflow that works (memorize):**
-1. Launch via EC2 console -> wait for state = Running, status = 2/2 (~3 min)
-2. Get public IP from instance row
-3. SSH from Mac terminal: `ssh -i ~/.ssh/id_ed25519 ubuntu@<ip>`
-4. Do work
-5. Exit SSH: `exit`
-6. Stop via EC2 console: select instance -> Instance state -> Stop instance
-7. Verify state shows "Stopped" before walking away
-
-**Stop discipline (CRITICAL — re-emphasize):**
+**Stop discipline (CRITICAL):**
 - Instance MUST be stopped at end of every work session
-- "Stopped" = $0 compute charges (only ~$0.02/hr EBS storage)
+- "Stopped" = $0 compute (only ~$0.02/hr EBS storage)
 - "Running" = $0.97/hr — leaving overnight burns ~$8 for nothing
-- AWS Budgets configured: $10 early warning will email if forgotten
-- Discipline beats budgets; budgets are a backstop, not a permission slip
+- AWS Budgets configured as backstop ($10 early warning)
 
 **Issues encountered & resolution:**
-- *Storage UI added an unwanted Volume 2 (8 GiB):* During launch wizard, an extra 8 GiB EBS volume appeared (Not encrypted, Delete-on-termination=No). Removed via the Remove button before clicking Launch. The 250 GB NVMe instance store is separate and free.
-- *Source type "My IP" not in dropdown initially:* When configuring the security group rule, "Source type" dropdown didn't show My IP option until the rule was removed and re-added through "Add security group rule" flow. AWS UI inconsistency — workaround was simple, just needed extra clicks.
-- *AWS new-account quota of 0 (resolved earlier):* See Story 0.1 Block 5 for full chronicle of quota appeal saga.
+- Storage UI auto-attached an unwanted 8 GiB Volume 2 — removed before launch
+- Source type "My IP" missing from dropdown initially — fixed by removing rule and re-adding via "Add security group rule" flow
+
+---
+
+### Story 0.3 — System dependencies installed (DONE 2026-05-08)
+
+**What was done:**
+- Installed system packages required for Kit and VNC workflow
+- Verified all installs succeeded without breaking running services
+
+**Working commands:**
+```bash
+# Refresh apt index
+sudo apt update
+
+# Install all dependencies in one transaction
+sudo apt install -y \
+    libvulkan1 \
+    mesa-vulkan-drivers \
+    vulkan-tools \
+    xvfb \
+    x11vnc \
+    novnc \
+    websockify \
+    tmux
+
+# build-essential is already installed in the Deep Learning AMI
+# git is already installed (version 2.34.1)
+```
+
+**What each package does:**
+
+| Package | Purpose |
+|---|---|
+| libvulkan1 | Vulkan runtime library — Kit's RTX renderer talks to GPU through this |
+| mesa-vulkan-drivers | Mesa Vulkan ICD (CPU fallback, harmless to have) |
+| vulkan-tools | Includes `vulkaninfo` for verification |
+| xvfb | X virtual framebuffer — fakes a display for headless Kit |
+| x11vnc | VNC server bridging X11 to TCP — Story 0.7 |
+| novnc | Browser-based VNC client (HTML/JS) — Story 0.7 |
+| websockify | TCP-to-WebSocket proxy — Story 0.7 |
+| tmux | Terminal multiplexer — survives SSH disconnect during long ops |
+
+**Verification:**
+- Install completed in ~2 min, no errors
+- "No services need to be restarted" confirmed by needrestart
+- Kernel up-to-date, no reboot needed
+
+**Issues encountered & resolution:**
+- Two harmless apt warnings about NVIDIA repos configured multiple times in `/etc/apt/sources.list.d/`. Cosmetic, ignored.
+- "197 packages can be upgraded" — NOT performed. System upgrade could change kernel/driver versions and break GPU. Stay on AMI's known-good versions.
+
+---
+
+### Story 0.4 — Vulkan + GPU verified (DONE 2026-05-08)
+
+**What was done:**
+- Ran `vulkaninfo --summary` to verify Vulkan can see the L4 GPU through NVIDIA's proprietary driver
+
+**Working command:**
+```bash
+vulkaninfo --summary
+```
+
+**Output (key lines):**
+```
+Vulkan Instance Version: 1.4.312
+
+Instance Layers: count = 5
+- VK_LAYER_INTEL_nullhw       (cosmetic)
+- VK_LAYER_MESA_device_select (cosmetic)
+- VK_LAYER_MESA_overlay       (cosmetic)
+- VK_LAYER_NV_optimus         (NVIDIA Optimus — relevant)
+- VK_LAYER_NV_present         (NVIDIA presentation — relevant)
+
+Devices:
+GPU0:
+    apiVersion         = 1.4.312
+    driverVersion      = 580.105.08
+    vendorID           = 0x10de
+    deviceID           = 0x27b8
+    deviceType         = PHYSICAL_DEVICE_TYPE_DISCRETE_GPU
+    deviceName         = NVIDIA L4
+    driverID           = DRIVER_ID_NVIDIA_PROPRIETARY
+    driverName         = NVIDIA
+    driverInfo         = 580.105.08
+
+GPU1: (Mesa LLVMPIPE — CPU fallback, harmless)
+```
+
+**What this confirms:**
+- Vulkan API 1.4 available (Kit needs 1.3+)
+- NVIDIA L4 detected via Vulkan API (vendor `0x10de` = NVIDIA, device `0x27b8` = L4)
+- DISCRETE_GPU type (real hardware, not CPU emulation)
+- NVIDIA proprietary driver loaded
+- VK_LAYER_NV_optimus + VK_LAYER_NV_present layers active
+
+**Issues encountered & resolution:**
+- None. GPU is fully ready for Kit.
+
+---
+
+### Story 0.5 — Kit App Template built (DONE 2026-05-08)
+
+**What was done:**
+- Cloned NVIDIA's official `kit-app-template` repository
+- Generated a custom Kit Base Editor application named `com.sowthri.cdutwin`
+- Built the application via `./repo.sh build`
+- Verified launcher artifact exists
+
+**Working commands:**
+```bash
+# Clone (shallow, faster)
+cd ~
+git clone --depth 1 https://github.com/NVIDIA-Omniverse/kit-app-template.git
+cd kit-app-template
+
+# Generate application via interactive wizard
+./repo.sh template new
+# Prompts answered:
+#   Type:                  Application
+#   Template:              Kit Base Editor (kit_base_editor)
+#   .kit file name:        com.sowthri.cdutwin
+#   display_name:          CDU Twin App
+#   version:               0.1.0
+#   add layers?:           No
+
+# Build (downloads Kit SDK from packman cache + NVIDIA CDN)
+./repo.sh build
+```
+
+**Result:**
+- BUILD (RELEASE) SUCCEEDED in 122 seconds
+- Kit version: `110.1.1+main.0.f130d19b.local`
+- Build output at: `_build/linux-x86_64/release/`
+- Launcher: `_build/linux-x86_64/release/com.sowthri.cdutwin.kit.sh`
+- Source `.kit` config: `source/apps/com.sowthri.cdutwin.kit`
+
+**Verification:**
+```bash
+ls -la _build/linux-x86_64/release/
+# Shows: com.sowthri.cdutwin.kit.sh (launcher), kit.sh (parent),
+#        apps/, kit/, extscache/, etc.
+
+cat source/apps/com.sowthri.cdutwin.kit | head -20
+# Shows valid TOML config:
+#   [package]
+#   title = "CDU Twin App"
+#   version = "0.1.0"
+#   template_name = "kit_base_editor"
+```
+
+**Issues encountered & resolution:**
+- Wizard had pre-filled placeholder text in prompt fields (e.g., "my_company.my_editor", "My Editor"). Pressing Enter without clearing accepts the placeholder.
+- **Resolution:** Use `Ctrl+U` to clear each prompt before typing the correct value. Watch for placeholder text and clear it deliberately.
+- First attempt accepted "My Editor" as display_name — wizard was Ctrl+C'd, restarted with deliberate clearing.
+
+---
+
+### Story 0.6 — Xvfb + Kit headless boot (DONE 2026-05-08)
+
+**What was done:**
+- Started Xvfb on display `:99` (1920x1080x24)
+- Set DISPLAY environment variable
+- Launched Kit via the built launcher script with `--no-window` for first test
+- Confirmed all extensions loaded and "app ready" reached
+- Killed Kit cleanly via Ctrl+C
+
+**Working commands:**
+```bash
+# Start Xvfb in background
+Xvfb :99 -screen 0 1920x1080x24 -ac +extension GLX +render -noreset &
+
+# Verify Xvfb running
+ps aux | grep Xvfb | grep -v grep
+# Should show: Xvfb :99 ... (PID printed)
+
+# Set DISPLAY for current shell
+export DISPLAY=:99
+
+# First boot test (10 second auto-quit)
+./_build/linux-x86_64/release/com.sowthri.cdutwin.kit.sh \
+    --no-window \
+    --/app/quitAfter=10 \
+    2>&1 | tee /tmp/kit-firstboot.log
+```
+
+**Notable boot log lines:**
+- All extensions startup (omni.kit.*, omni.physx.*, omni.usd.*, omni.warp.core, omni.rtx.*, etc.)
+- `[ext: com.sowthri.cdutwin-0.1.0] startup` — custom app extension loaded
+- `[11.225s] app ready` — Kit fully booted, RTX initialized
+
+**Cosmetic warning:**
+- `Warning: Possible version incompatibility. Attempting to load omni::fabric::IStageReaderWriter with version v0.16 against v0.14.`
+- Known cosmetic warning in Kit 110.x. Harmless. Kit boots cleanly despite it. Future-you will see this — don't be alarmed.
+
+**Verification — Kit booted, then exited cleanly:**
+- All ~50 extensions loaded
+- "app ready" achieved at 11.225 seconds
+- No errors, no segfaults
+- Kit ran for 10 seconds (per --/app/quitAfter=10) and exited
+
+**Issues encountered & resolution:**
+- During Story 0.7 testing (Kit started without --quitAfter), Kit kept running and tmux foreground was occupied. Resolution: `Ctrl+C` in tmux pane killed Kit cleanly. Always run Kit with `--/app/quitAfter=N` for time-limited tests, or run in background with `&` for VNC sessions.
+
+---
+
+### Story 0.7 — VNC accessible from Mac (DONE 2026-05-08)
+
+**What was done:**
+- Started full VNC chain on cloud: x11vnc → websockify+noVNC
+- Created SSH tunnel from Mac to cloud port 6080
+- Opened browser at http://localhost:6080/vnc.html → noVNC web UI
+- Started Kit (with window) → Kit's UI rendered live in Mac browser
+- First visual proof of Phase 0 working: NVIDIA Omniverse Kit running on cloud GPU L4, displayed in Mac Chrome browser
+
+**Architecture (mental model):**
+```
+Mac browser
+  ↓ HTTPS to localhost:6080
+[Mac terminal: SSH tunnel localhost:6080 → cloud:6080]
+  ↓ encrypted SSH
+[Cloud: websockify on 6080] (translates WebSocket to TCP)
+  ↓ TCP localhost:5900
+[Cloud: x11vnc on 5900] (reads Xvfb framebuffer)
+  ↓ X11 protocol
+[Cloud: Xvfb on :99] (virtual display)
+  ↓ X11 rendering
+[Cloud: Kit application]
+  ↓ Vulkan
+[NVIDIA L4 GPU]
+```
+
+**Working commands — cloud side (in tmux session):**
+```bash
+# Xvfb already running from Story 0.6
+export DISPLAY=:99
+
+# Start x11vnc (background, port 5900)
+x11vnc -display :99 -forever -shared -rfbport 5900 -bg -o /tmp/x11vnc.log
+
+# Verify x11vnc listening on 5900
+ss -tlnp 2>/dev/null | grep 5900
+
+# Start websockify + noVNC web UI on port 6080
+websockify --web=/usr/share/novnc 6080 localhost:5900 &
+
+# Verify websockify listening on 6080
+ss -tlnp 2>/dev/null | grep 6080
+
+# Start Kit in background (no quitAfter, real session)
+./_build/linux-x86_64/release/com.sowthri.cdutwin.kit.sh > /tmp/kit-vnc.log 2>&1 &
+```
+
+**Working commands — Mac side (NEW terminal tab, NOT from cloud SSH):**
+```bash
+# IMPORTANT: this MUST run from your Mac shell, NOT inside cloud SSH session
+# (The ~/.ssh/id_ed25519 path resolves to your Mac's ~/.ssh/, not cloud's)
+
+# Verify on Mac (not cloud)
+hostname  # should print SOWTHRIs-MacBook-Air.local
+
+# Open SSH tunnel: Mac:6080 → cloud:6080
+ssh -i ~/.ssh/id_ed25519 -L 6080:localhost:6080 -N ubuntu@<cloud-public-ip>
+# Terminal hangs (no output) — that's success. Don't close this tab.
+
+# In a SEPARATE Mac terminal tab:
+lsof -i :6080
+# Should show: ssh ... TCP localhost:6080 (LISTEN)
+
+# Open in browser:
+# http://localhost:6080/vnc.html
+# Click "Connect"
+# See Xvfb desktop (black + cursor when no app, or Kit window when running)
+```
+
+**Verification:**
+- noVNC web UI loaded in browser
+- Connect → black screen + mouse cursor (Xvfb's empty desktop)
+- After Kit launched, Kit's full UI rendered in browser:
+  - Title bar: "CDU Twin App"
+  - Toolbar: File / Edit / Create / Window / Developer / Help
+  - 3D viewport with Z/X/Y axis indicator
+  - "RTX - Real-Time 2.0" renderer indicator
+  - Stage panel: World (defaultPrim), Environment
+  - 1280x720 render size
+  - "RTX Loading 0.00%" progress overlay (one-time shader compile)
+  - 2.6 GiB process memory used / 11.7 GiB available
+
+**This is the visual proof Phase 0 worked.**
+
+**Issues encountered & resolution:**
+- *SSH tunnel command initially run from inside cloud SSH session* — failed with "/home/ubuntu/.ssh/id_ed25519 not accessible" because that path doesn't exist on cloud. **Resolution:** Always run the tunnel command from a fresh Mac terminal tab. Verify with `hostname` first — should print Mac hostname, not `ip-172-31-...`.
+- *Three terminal tabs needed:* (1) cloud SSH for services, (2) Mac SSH tunnel (hangs silently), (3) Mac shell for `lsof` and other checks. New tabs open as Mac shell by default — they do NOT inherit the SSH session of other tabs.
+
+**Cleanup commands (when done with VNC session):**
+```bash
+# Cloud side — kill in this order (top of chain down)
+pkill -9 kit
+pkill -9 websockify
+pkill -9 x11vnc
+pkill -9 Xvfb
+
+# Verify all dead
+ps aux | grep -E "kit|Xvfb|x11vnc|websockify" | grep -v grep
+# Should be empty (only system noise like polkitd/packagekitd remains)
+
+# Mac side — Ctrl+C on the SSH tunnel tab
+# Then exit cloud SSH session
+```
 
 ---
 
 ### What's NOT done yet in Phase 0
 
-- **Story 0.3** — Install system dependencies (Vulkan, Xvfb, x11vnc, novnc, websockify) (~30 min, ~$0.30)
-- **Story 0.4** — Verify Vulkan + GPU recognized by `vulkaninfo --summary` (~15 min)
-- **Story 0.5** — Clone kit-app-template, build Kit Base Editor (~60 min)
-- **Story 0.6** — Boot Kit headlessly under Xvfb, confirm clean startup (~30 min)
-- **Story 0.7** — Set up VNC tunnel from Mac to cloud, see Kit window in browser (~30 min)
-- **Story 0.8** — Phase 0 snapshot (EBS), document snapshot ID, test boot-from-snapshot (~15 min)
+- **Story 0.8** — Phase 0 snapshot (EBS), document snapshot ID, test boot-from-snapshot (~15 min, ~$0.20)
 
-Total Phase 0 remaining: ~3 hours of focused work across 6 stories.
-
----
-
-### Story 0.3 — System dependencies installed
-
-(to be filled in)
-
----
-
-### Story 0.4 — Vulkan + GPU verified
-
-(to be filled in)
-
----
-
-### Story 0.5 — Kit App Template built
-
-(to be filled in)
-
----
-
-### Story 0.6 — Xvfb + Kit headless boot
-
-(to be filled in)
-
----
-
-### Story 0.7 — VNC accessible from Mac
-
-(to be filled in)
+After Story 0.8: Phase 0 closed. Phase 1 (CDU scene authoring in Kit + USD) starts.
 
 ---
 
@@ -428,8 +563,6 @@ Total Phase 0 remaining: ~3 hours of focused work across 6 stories.
 
 ## Glossary
 
-For when you come back to this in 6 months and forget what something means.
-
 | Term | Meaning in this project |
 |---|---|
 | Kit | NVIDIA Omniverse Kit, the framework. Our app is built on it. |
@@ -450,6 +583,11 @@ For when you come back to this in 6 months and forget what something means.
 | EBS | Elastic Block Store — AWS's persistent disk service. Billed per GiB-month even when stopped. |
 | Instance store | Local NVMe SSD on the host. Free, ephemeral, wiped on stop. |
 | g6.xlarge | Our chosen instance type: 4 vCPU, 16 GB RAM, 1x NVIDIA L4, $0.97/hr |
+| Vulkan | Modern low-overhead graphics API. Kit's RTX renderer uses Vulkan to talk to the GPU. |
+| Xvfb | X virtual framebuffer — fakes a display server for headless graphical apps |
+| VNC | Virtual Network Computing — remote desktop protocol |
+| noVNC | HTML/JS VNC client that runs in a browser tab |
+| websockify | Proxy that translates WebSocket connections (browser-friendly) to raw TCP (VNC-friendly) |
 
 ---
 
@@ -459,43 +597,73 @@ For when you come back to this in 6 months and forget what something means.
 
 **Symptom:** Card rejected at Lambda Labs payment processor at signup.
 **Root cause:** Lambda's payment processor is restrictive about Saudi-issued cards. AWS uses a different processor that accepts them.
-**Resolution:** Pivoted cloud provider to AWS. Don't waste time fighting card friction at one provider when another might just work.
+**Resolution:** Pivoted cloud provider to AWS.
 
 ### NGC menu reorganization — "Setup" became "Personal Keys" (2026-04-30)
 
-**Symptom:** Charter said "Profile -> Setup" but the dropdown showed "Key Permission Services / Secret Manager / NGC Catalog" instead.
-**Root cause:** NVIDIA redesigned NGC menus in 2024-2025. Credential generation flow moved from "Setup" to "Personal Keys".
-**Resolution:** Direct URL works regardless of UI changes: `https://ngc.nvidia.com/setup` or `https://ngc.nvidia.com/setup/personal-keys`. Of the visible menu items, "Personal Keys" is the right one (not Secret Manager, not Catalog).
+**Symptom:** Charter said "Profile -> Setup" but the dropdown showed different menu items.
+**Root cause:** NVIDIA redesigned NGC menus in 2024-2025.
+**Resolution:** Direct URL: `https://ngc.nvidia.com/setup/personal-keys`. Of menu items, "Personal Keys" is the right one.
 
 ### AWS new account default GPU quota = 0 (2026-05-01)
 
-**Symptom:** Cannot launch any G-family instance. Service Quotas page shows "Running On-Demand G and VT instances" applied limit of 0.
-**Root cause:** AWS gates GPU access on new accounts as fraud prevention. Default quota is 0 for the first weeks of an account's life.
-**Resolution:** File quota request for exactly 4 vCPUs (no more — smaller requests approve faster). If the form-based request denies (auto-decline is common for brand-new accounts), use Support chat for the appeal — a live agent can submit a properly-contextualized exception request.
+**Symptom:** Cannot launch any G-family instance. Service Quotas shows applied limit of 0.
+**Root cause:** AWS gates GPU access on new accounts as fraud prevention.
+**Resolution:** File quota request for exactly 4 vCPUs. If form-based request denies (auto-decline is common for brand-new accounts), use Support chat for the appeal.
 
 ### AWS first quota request denied without explanation (2026-05-01)
 
-**Symptom:** Submitted via Service Quotas form, denied within 30 min by automated system. Form had no use-case description field.
+**Symptom:** Submitted via Service Quotas form, denied within 30 min by automated system.
 **Root cause:** Brand-new account + GPU request + no use case provided = automatic high-risk flagging.
-**Resolution:** Always use AWS Support chat for first-time GPU requests on new accounts. Provide: real project description, GitHub URL for verification, specific minimum instance, cost controls already in place. Don't ask for headroom — request the exact minimum.
+**Resolution:** Always use AWS Support chat for first-time GPU requests. Provide: real project description, GitHub URL, specific minimum instance, cost controls.
 
-### AWS quota approvals slow on weekends (observed 2026-05-02 to 2026-05-05)
+### AWS quota approvals slow on weekends (2026-05-02 to 2026-05-05)
 
-**Symptom:** Case submitted Friday evening Mumbai time, status still "Pending Amazon action" Saturday morning. Took 4 business days to resolve.
-**Root cause:** AWS Support operates 24/7 but quota review (Trust & Safety / EC2 team) is heavier weekday-staffed. New-account exception requests need human judgment, which queues until business hours resume.
-**Resolution:** Don't refresh case page repeatedly on weekends. Use the wait time for runbook updates, charter deltas, and reading prep docs. For new accounts, file quota requests early in the week (Monday/Tuesday) to avoid weekend stall. A polite follow-up via chat after 3+ business days can move things along.
+**Symptom:** Case submitted Friday evening Mumbai time, status still "Pending Amazon action" Saturday morning. Took 4 business days.
+**Root cause:** AWS Trust & Safety / EC2 team is heavier weekday-staffed.
+**Resolution:** File quota requests early in the week. Polite follow-up via chat after 3+ business days can move things along.
 
 ### Storage configuration UI auto-attaches unwanted volumes (2026-05-05)
 
-**Symptom:** During EC2 launch wizard, after configuring the root volume to 200 GiB, an additional 8 GiB Volume 2 appeared with Not-encrypted and Delete-on-termination=No defaults.
-**Root cause:** AWS launch wizard sometimes auto-attaches secondary volumes based on AMI defaults or session state. Behavior is inconsistent.
-**Resolution:** Always inspect the Configure storage section carefully before launching. Click Remove on any unwanted volumes. The Summary panel "X volume(s) - Y GiB" includes both EBS and ephemeral instance store, which can be confusing — instance store is free and ephemeral, EBS is billed and persistent.
+**Symptom:** During EC2 launch wizard, an extra 8 GiB Volume 2 appeared with bad defaults.
+**Root cause:** AWS launch wizard sometimes auto-attaches secondary volumes based on AMI defaults.
+**Resolution:** Always inspect the Configure storage section before launching. Click Remove on unwanted volumes.
 
 ### Security group "Source type" dropdown sometimes lacks "My IP" (2026-05-05)
 
-**Symptom:** When configuring inbound SSH rule, "Source type" dropdown didn't show My IP option immediately.
-**Root cause:** AWS UI inconsistency — depending on how you arrived at the rule (auto-created vs manually added), the available source-type options differ.
-**Resolution:** Remove the auto-created rule and add a fresh one via "Add security group rule" button. The fresh rule's Source type dropdown reliably includes My IP.
+**Symptom:** When configuring inbound SSH rule, "Source type" dropdown didn't show My IP option.
+**Root cause:** AWS UI inconsistency — depending on how rule was created.
+**Resolution:** Remove the auto-created rule and add a fresh one via "Add security group rule" button.
+
+### EC2 "insufficient capacity" across all AZs in a region (2026-05-06 to 2026-05-08)
+
+**Symptom:** All three Mumbai AZs (1a, 1b, 1c) showed g6.xlarge as unavailable when trying to start a stopped instance OR launch a new one.
+**Root cause:** Regional GPU capacity constraint. AWS has finite physical hardware in any region. Popular instance types run dry under demand spikes.
+**Resolution:** Wait. Capacity returns within hours to a few days. Don't pivot to expensive AMI workarounds — they don't help (AMI launch hits the same capacity wall). Multi-region quota is the long-term fix (file quota request in Singapore as backup before you need it).
+
+### NVIDIA Omniverse Kit AMI creation rejects em-dashes (2026-05-06)
+
+**Symptom:** "Value (...) for parameter Description is invalid. Character sets beyond ASCII are not supported."
+**Root cause:** AWS API fields require ASCII-only. Em-dashes (—), smart quotes, Unicode arrows all fail.
+**Resolution:** Use plain ASCII hyphens (-) and straight quotes. When copy-pasting into AWS forms, watch for: em-dash (—), en-dash (–), smart quotes ("..."), curly apostrophes ('), bullet (•), arrows (→ ⇒).
+
+### Kit App Template wizard placeholder text (2026-05-08)
+
+**Symptom:** During `./repo.sh template new`, prompt fields are pre-filled with placeholder text (e.g., "my_company.my_editor", "My Editor"). Pressing Enter accepts the placeholder.
+**Root cause:** Kit wizard doesn't clear placeholders when you start typing.
+**Resolution:** Use `Ctrl+U` to clear each prompt before typing the correct value. Watch for placeholder text and clear it deliberately. Verify each line shows your intended value before pressing Enter.
+
+### Kit `--/app/quitAfter` doesn't always trigger reliably (2026-05-08)
+
+**Symptom:** Kit started with `--/app/quitAfter=10` but kept running in tmux foreground.
+**Root cause:** Unclear — possibly only kicks in after full app initialization. Or interferes with `tee` log capture.
+**Resolution:** Always have a way to manually kill Kit. Foreground: `Ctrl+C` in the tmux pane. Background (`&`): note the PID and use `kill <PID>` then `pkill -9 kit`.
+
+### SSH tunnel command must run from Mac, not cloud (2026-05-08)
+
+**Symptom:** `Warning: Identity file /home/ubuntu/.ssh/id_ed25519 not accessible: No such file or directory.`
+**Root cause:** SSH tunnel command was run from inside the cloud SSH session. The `~` resolved to cloud's `/home/ubuntu/`, where the Mac's private key doesn't exist.
+**Resolution:** Always open a fresh Mac terminal tab (Cmd+T) for the tunnel. Verify with `hostname` — should print `SOWTHRIs-MacBook-Air.local`, not `ip-172-31-...`. New tabs open as Mac shell by default; they do NOT inherit cloud SSH sessions.
 
 ---
 
@@ -508,13 +676,16 @@ For when you come back to this in 6 months and forget what something means.
 | 2026-04-29 | HTTPS + PAT for git auth, NOT SSH for git | Owner preference; PAT cached in macOS keychain |
 | 2026-04-29 | Repos public from day one | Owner preference for transparency and recruiter-readability |
 | 2026-04-29 | Kit extension namespace: `com.sowthri.cdutwin` | Hyphens illegal in Python package names |
-| 2026-04-30 | **PIVOT: Lambda Labs -> AWS** for cloud provider | Lambda's payment processor declined Saudi-issued card; Lambda doesn't accept PayPal; Lambda has no India region. AWS Mumbai is closer to Saudi than Lambda's US-only data centers, accepts the card, and has $120 in promotional credits. |
-| 2026-04-30 | AWS region: ap-south-1 (Mumbai) | Closest available region with reliable g6 capacity; 120ms latency from Dammam (acceptable for SSH+VNC); Aramco runs many workloads from Mumbai (interview relevance) |
-| 2026-04-30 | Instance type: g6.xlarge (L4 GPU) instead of g5.xlarge (A10G) | Newer Ada architecture, 20% cheaper, equivalent capability for Omniverse Kit. CSV analysis of all 37 GPU types in Mumbai confirmed this is the right size/cost point. |
-| 2026-04-30 | AWS Budgets: $10 early warning + $100 monthly cap | Realistic for $0.97/hr x ~125-hour project usage; lower thresholds caused false-positive alerts |
-| 2026-05-01 | JarvisLabs (https://jarvislabs.ai) chosen as Plan B if AWS denies | Indian provider, instant access, no quota gates, $0.44/hr L4 instances, accepts Indian payment methods. Hardware identical to AWS g6.xlarge. |
-| 2026-05-05 | AWS GPU quota appeal granted via human Support chat (4 vCPUs in ap-south-1) | Brand-new account flagged for fraud prevention. First automated request denied; appeal via chat with detailed use case + GitHub URL succeeded. Esteban submitted appeal Friday; Richa confirmed approval Tuesday morning. Realistic time-to-approval for new-account GPU access: 2-4 business days, not 24 hours. |
-| 2026-05-05 | EBS root volume sized at 200 GiB gp3, encrypted, delete-on-termination=Yes | Sized for full project: Kit (~30 GB) + Isaac Sim (~50 GB) + drivers + USD + buffer. Encryption is free at-rest data protection. Delete-on-terminate prevents orphaned billing. Instance store (250 GB NVMe) accepted as free ephemeral scratch. |
+| 2026-04-30 | **PIVOT: Lambda Labs -> AWS** | Lambda declined Saudi card; AWS Mumbai accepts it and offers $120 credits. |
+| 2026-04-30 | AWS region: ap-south-1 (Mumbai) | Closest with reliable g6 capacity; 120ms latency from Dammam; Aramco runs many workloads from Mumbai (interview relevance) |
+| 2026-04-30 | Instance type: g6.xlarge (L4 GPU) instead of g5.xlarge (A10G) | Newer Ada architecture, 20% cheaper, equivalent capability for Omniverse Kit |
+| 2026-04-30 | AWS Budgets: $10 early warning + $100 monthly cap | Realistic for $0.97/hr × ~125-hour project usage |
+| 2026-05-01 | JarvisLabs (https://jarvislabs.ai) chosen as Plan B if AWS denies | Indian provider, instant access, $0.44/hr L4. Plan B never activated (card declined when tested 2026-05-07) but kept documented. |
+| 2026-05-05 | AWS GPU quota appeal granted via human Support chat (4 vCPUs in ap-south-1) | First request auto-denied; appeal via chat with detailed use case + GitHub URL succeeded in 4 business days |
+| 2026-05-05 | EBS root volume sized at 200 GiB gp3, encrypted, delete-on-termination=Yes | Sized for full project: Kit (~30 GB) + Isaac Sim (~50 GB) + drivers + USD + buffer |
+| 2026-05-06 | Created AMI `refinery-twin-gpu-image-v1` then deregistered after realizing it wouldn't help with capacity | Capacity issue affects ALL g6 launches in region, not specific instances. AMI was unnecessary insurance. |
+| 2026-05-08 | Kit App Template version `110.1.1+main.0.f130d19b.local` chosen (NVIDIA's main branch latest) | Most recent stable Kit. Includes RTX Real-Time 2.0, omni.warp.core 1.13, omni.physx 110.1.1 |
+| 2026-05-08 | Kept stopped AWS instance during JarvisLabs evaluation rather than terminating | Useful as proven-working AWS state if JarvisLabs evaluation hit blockers. ~$16/month EBS cost, covered by credits. JarvisLabs card was declined; AWS path resumed cleanly. |
 
 ---
 
